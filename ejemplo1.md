@@ -1,4 +1,4 @@
-```console
+```
 ---
 - name: Configurar sudoers para usuarios y grupos en RHEL
   hosts: servidores_rhel
