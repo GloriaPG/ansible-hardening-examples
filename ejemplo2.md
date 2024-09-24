@@ -46,6 +46,54 @@ El módulo win_package se utiliza para ejecutar el instalador del antivirus que 
 Verificar si Microsoft Defender está activado (opcional):
 
 Este paso es opcional y se usa para verificar si las características de Windows Defender (Microsoft Defender) están activadas en versiones modernas de Windows (como Windows 10 o superior). Usa el módulo win_feature para asegurarte de que está presente. Este paso puede omitirse si estás instalando otro antivirus.
+
+Ejemplo de instalación de Cortex en RHEL :
+
+```
+---
+- name: Instalar Cortex XDR Agent en RHEL
+  hosts: servidores_rhel
+  become: yes
+  tasks:
+
+    - name: Instalar las dependencias necesarias
+      ansible.builtin.yum:
+        name: 
+          - wget
+          - glibc
+          - libgcc
+        state: present
+
+    - name: Descargar el instalador del agente Cortex XDR
+      ansible.builtin.get_url:
+        url: "https://example.com/cortex-xdr-agent-installer.sh"
+        dest: "/tmp/cortex-xdr-agent-installer.sh"
+        mode: '0755'
+
+    - name: Ejecutar el instalador del agente Cortex XDR
+      ansible.builtin.command: 
+        cmd: "/tmp/cortex-xdr-agent-installer.sh"
+      args:
+        creates: "/opt/traps/bin/cortex-xdr-agent"
+
+    - name: Iniciar el servicio del agente Cortex XDR
+      ansible.builtin.systemd:
+        name: cortex-xdr-agent
+        enabled: yes
+        state: started
+
+    - name: Verificar que el servicio está corriendo
+      ansible.builtin.systemd:
+        name: cortex-xdr-agent
+        state: started
+
+    - name: Limpiar el instalador
+      ansible.builtin.file:
+        path: "/tmp/cortex-xdr-agent-installer.sh"
+        state: absent
+
+```
+
 Reiniciar si es necesario:
 
 El módulo win_reboot reinicia el servidor si el sistema requiere un reinicio después de la instalación del antivirus. El comando se ejecuta solo si ansible_pkg_mgr_reboot_required es verdadero, lo cual indica que un reinicio es necesario.
