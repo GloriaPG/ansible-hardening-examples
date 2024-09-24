@@ -1,6 +1,6 @@
 Para cumplir con la regla del Instituto SANS y el Centro de Seguridad de Internet (CIS) que establece la necesidad de generar alertas sobre intentos fallidos de inicio de sesión con cuentas administrativas, podemos utilizar herramientas como auditd y faillock. Estas herramientas permiten registrar eventos de inicio de sesión fallidos y generar notificaciones o alertas.
 
-###Estrategia:
+### Estrategia:
 
 1. Configurar auditd para registrar eventos de autenticación fallidos de cuentas administrativas.
 2. Configurar faillock para registrar intentos fallidos de autenticación.
