@@ -35,6 +35,8 @@ Playbook: instalar_antivirus_windows.yml
 ```
 
 Explicación del Playbook:
+
+
 Descargar el instalador del antivirus:
 
 Utiliza el módulo win_get_url para descargar el instalador del antivirus desde una URL y guardarlo en la carpeta C:\Temp\ en el sistema Windows. Aquí puedes usar la URL del instalador de tu antivirus específico.
