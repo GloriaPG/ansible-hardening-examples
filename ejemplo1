@@ -1,0 +1,46 @@
+---
+- name: Configurar sudoers para usuarios y grupos en RHEL
+  hosts: servidores_rhel
+  become: yes
+  tasks:
+    
+    - name: Dar permisos de sudo sin contraseña al grupo "wheel"
+      ansible.builtin.lineinfile:
+        path: /etc/sudoers
+        state: present
+        regexp: '^%wheel'
+        line: '%wheel ALL=(ALL) NOPASSWD:ALL'
+        validate: '/usr/sbin/visudo -cf %s'
+
+    - name: Permitir que el grupo "wheel" ejecute solo comandos específicos
+      ansible.builtin.lineinfile:
+        path: /etc/sudoers
+        state: present
+        insertafter: '^%wheel ALL=(ALL) NOPASSWD:ALL'
+        line: '%wheel ALL=(ALL) /usr/bin/systemctl restart httpd, /usr/bin/systemctl restart nginx'
+        validate: '/usr/sbin/visudo -cf %s'
+
+    - name: Denegar el uso de sudo a un usuario específico
+      ansible.builtin.lineinfile:
+        path: /etc/sudoers
+        state: present
+        insertafter: '^%wheel ALL=(ALL) NOPASSWD:ALL'
+        line: 'usuario_test ALL=(ALL) !ALL'
+        validate: '/usr/sbin/visudo -cf %s'
+
+
+Explicación del Playbook:
+Dar permisos de sudo sin contraseña al grupo wheel:
+
+Usa lineinfile para modificar el archivo /etc/sudoers y permitir que todos los miembros del grupo wheel puedan ejecutar cualquier comando con sudo sin necesidad de ingresar su contraseña.
+La línea que agrega es: %wheel ALL=(ALL) NOPASSWD:ALL.
+Restringir el uso de sudo a comandos específicos:
+
+En este caso, también se configura el archivo sudoers para que el grupo wheel pueda ejecutar solo ciertos comandos con sudo, como reiniciar los servicios httpd y nginx usando systemctl.
+La línea que agrega es: %wheel ALL=(ALL) /usr/bin/systemctl restart httpd, /usr/bin/systemctl restart nginx.
+Denegar el uso de sudo a un usuario específico:
+
+En el último paso, se configura para denegar el uso de sudo a un usuario específico (usuario_test). La línea que se añade es: usuario_test ALL=(ALL) !ALL, lo que impide a ese usuario ejecutar cualquier comando con sudo.
+Validación con visudo:
+El parámetro validate: '/usr/sbin/visudo -cf %s' se utiliza para asegurarse de que el archivo /etc/sudoers sea válido antes de aplicar los cambios, evitando así posibles errores de sintaxis que puedan bloquear el uso de sudo.
+
