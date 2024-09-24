@@ -1,107 +1,86 @@
-Para asegurarte de que los usuarios y contraseñas en sistemas Linux se almacenen y transmitan de manera segura utilizando protocolos como SSHv2 y SSL/TLS 1.2 o superior, puedes configurar tanto SSH para la transmisión de contraseñas de manera segura, como servicios que usen SSL/TLS.
+La regla del Centro de Seguridad de Internet (CIS), recomendada por el Instituto SANS, establece que las cuentas privilegiadas deben ser únicas según el rol y perfil del usuario. Para cumplir con esta regla, las cuentas de administración (root, sudoers, etc.) deben configurarse y gestionarse de manera que cada cuenta tenga privilegios específicos, y no se compartan entre múltiples usuarios. Además, estas cuentas deben estar claramente diferenciadas por roles y responsabilidades.
 
-A continuación te presento un playbook de Ansible que cubre los siguientes aspectos:
+A continuación, te doy un ejemplo de playbook de Ansible para cumplir con esta recomendación. Este playbook:
 
-1. Configurar SSH para asegurarse de que utiliza la versión 2 del protocolo.
-2. Habilitar y configurar SSL/TLS 1.2 o superior en servicios como Apache (si fuera necesario).
-3. Forzar autenticación en servicios a través de SSH y asegurarse de que las contraseñas están cifradas.
+1. Crea cuentas privilegiadas basadas en roles específicos.
+2. Configura sudoers para garantizar que los privilegios de administración se otorgan de acuerdo con el rol del usuario.
+3. Asegura que no haya cuentas compartidas para roles críticos, como administradores de sistemas o bases de datos.
 
 ```
 ---
-- name: Configurar SSH y SSL/TLS para asegurar el almacenamiento y transmisión de usuarios y contraseñas
+- name: Cumplir con la regla CIS sobre cuentas privilegiadas
   hosts: servidores_linux
   become: yes
+  vars:
+    privileged_users:
+      - { username: "admin_sys", role: "Administrador del sistema", shell: "/bin/bash", sudo_privileges: true }
+      - { username: "admin_db", role: "Administrador de base de datos", shell: "/bin/bash", sudo_privileges: false }
+      - { username: "admin_network", role: "Administrador de red", shell: "/bin/bash", sudo_privileges: true }
   tasks:
-
-    # 1. Configuración de SSH para usar SSHv2
-    - name: Asegurarse de que SSH está usando el protocolo 2
+  
+    # 1. Crear usuarios privilegiados con nombres únicos basados en roles
+    - name: Crear usuarios privilegiados de acuerdo a su rol
+      ansible.builtin.user:
+        name: "{{ item.username }}"
+        comment: "{{ item.role }}"
+        shell: "{{ item.shell }}"
+        state: present
+      loop: "{{ privileged_users }}"
+    
+    # 2. Configurar sudoers para los usuarios que requieren privilegios de sudo
+    - name: Configurar sudoers para usuarios con privilegios administrativos
       ansible.builtin.lineinfile:
-        path: /etc/ssh/sshd_config
-        regexp: '^#?Protocol'
-        line: 'Protocol 2'
+        path: /etc/sudoers
         state: present
-      notify: 
-        - restart ssh
+        create: yes
+        regexp: "^{{ item.username }}"
+        line: "{{ item.username }} ALL=(ALL) NOPASSWD:ALL"
+      loop: "{{ privileged_users | selectattr('sudo_privileges', 'equalto', true) }}"
 
-    - name: Asegurarse de que la autenticación por contraseña está permitida solo a través de SSH
+    # 3. Asegurar que no existan cuentas compartidas de root o administrador
+    - name: Verificar que no hay cuentas compartidas de root o usuarios administradores duplicados
+      ansible.builtin.command: "grep -E '^root:|admin' /etc/passwd"
+      register: admin_accounts
+      changed_when: false
+
+    - name: Mostrar los usuarios administrativos existentes
+      ansible.builtin.debug:
+        var: admin_accounts.stdout_lines
+
+    - name: Asegurar que root solo tiene un único usuario
+      ansible.builtin.fail:
+        msg: "Se detectó una cuenta de root compartida o duplicada"
+      when: admin_accounts.stdout_lines | length > 1
+
+    # 4. Configurar políticas adicionales de seguridad para usuarios administrativos
+    - name: Asegurarse de que las contraseñas de los usuarios privilegiados expiran
+      ansible.builtin.command: "chage -M 90 {{ item.username }}"
+      loop: "{{ privileged_users }}"
+    
+    - name: Asegurarse de que los usuarios administrativos bloquean la cuenta después de 5 intentos fallidos
       ansible.builtin.lineinfile:
-        path: /etc/ssh/sshd_config
-        regexp: '^#?PasswordAuthentication'
-        line: 'PasswordAuthentication yes'
+        path: /etc/security/faillock.conf
+        regexp: '^#?deny'
+        line: 'deny=5'
         state: present
-      notify: 
-        - restart ssh
-
-    - name: Desactivar autenticación por contraseña para el usuario root (recomendada)
-      ansible.builtin.lineinfile:
-        path: /etc/ssh/sshd_config
-        regexp: '^#?PermitRootLogin'
-        line: 'PermitRootLogin prohibit-password'
-        state: present
-      notify: 
-        - restart ssh
-
-    # 2. Configuración de SSL/TLS 1.2 o superior en Apache (ejemplo)
-    - name: Instalar Apache si no está presente (opcional)
-      ansible.builtin.yum:
-        name: httpd
-        state: present
-
-    - name: Asegurarse de que SSL/TLS 1.2 o superior está habilitado en Apache
-      ansible.builtin.lineinfile:
-        path: /etc/httpd/conf.d/ssl.conf
-        regexp: '^#?SSLProtocol'
-        line: 'SSLProtocol -all +TLSv1.2 +TLSv1.3'
-        state: present
-      notify:
-        - restart apache
-
-    - name: Deshabilitar cifrados inseguros en Apache
-      ansible.builtin.lineinfile:
-        path: /etc/httpd/conf.d/ssl.conf
-        regexp: '^#?SSLCipherSuite'
-        line: 'SSLCipherSuite HIGH:!aNULL:!MD5'
-        state: present
-      notify:
-        - restart apache
-
-    # 3. Asegurarse de que las contraseñas almacenadas están cifradas (utilizando SHA512 en shadow)
-    - name: Verificar que las contraseñas se almacenan cifradas usando SHA512
-      ansible.builtin.lineinfile:
-        path: /etc/login.defs
-        regexp: '^#?ENCRYPT_METHOD'
-        line: 'ENCRYPT_METHOD SHA512'
-        state: present
-
-    # Handlers para reiniciar servicios
-  handlers:
-    - name: restart ssh
-      ansible.builtin.systemd:
-        name: sshd
-        state: restarted
-
-    - name: restart apache
-      ansible.builtin.systemd:
-        name: httpd
-        state: restarted
 
 ```
 
+### Explicación del Playbook:
+1. Creación de usuarios privilegiados:
+Utiliza la variable privileged_users para definir usuarios basados en roles específicos como admin_sys, admin_db, y admin_network.
+Cada usuario tiene asignado un comentario con su rol y un shell específico. Los usuarios son creados o actualizados en el sistema.
 
-### Explicación del Playbook
+2. Configuración de sudoers:
 
-Configurar SSH para usar el protocolo SSHv2:
+Para los usuarios que requieren privilegios de sudo (sudo_privileges: true), se les otorga acceso completo en el archivo /etc/sudoers con la directiva NOPASSWD, para que no necesiten proporcionar su contraseña cada vez que utilicen sudo.
+Verificación de cuentas compartidas:
 
-1. Se asegura de que el archivo de configuración de SSH /etc/ssh/sshd_config esté configurado para utilizar SSHv2, que es más seguro que SSHv1.
-Se habilita la autenticación por contraseña a través de SSH, pero deshabilitamos el inicio de sesión con contraseña para el usuario root por seguridad adicional.
-Configurar SSL/TLS 1.2 o superior (en este caso para Apache):
+Se verifica que no haya cuentas de root duplicadas o compartidas. Si se encuentran varias entradas relacionadas con root en el archivo /etc/passwd, el playbook fallará, indicando una posible vulnerabilidad de seguridad.
+Si la verificación encuentra más de una cuenta de root o usuarios duplicados con privilegios, detendrá la ejecución del playbook y mostrará un mensaje de error.
 
-2. Si tienes servicios como Apache que necesitan SSL/TLS, se asegura de que se esté utilizando TLS 1.2 o superior y se desactivan los cifrados inseguros.
-Las configuraciones de SSL y los cifrados se ajustan en el archivo /etc/httpd/conf.d/ssl.conf.
-Almacenamiento seguro de contraseñas:
+3. Políticas adicionales de seguridad:
 
-3. Configura el sistema para almacenar las contraseñas usando SHA512 (un algoritmo de hash fuerte) en el archivo /etc/login.defs.
-   
-### Consideraciones adicionales:
-1. Reiniciar servicios: Después de realizar cambios en la configuración de SSH o Apache, se reinician los servicios respectivos para aplicar los cambios.
-2. Seguridad adicional para root: Se deshabilita la autenticación por contraseña para el usuario root, lo que mejora la seguridad.
+Contraseñas expiran: Se asegura que las contraseñas de los usuarios privilegiados expiran después de 90 días, usando chage -M 90.
+Bloqueo después de intentos fallidos: Se configura el archivo /etc/security/faillock.conf para bloquear la cuenta después de 5 intentos fallidos de autenticación.
+
