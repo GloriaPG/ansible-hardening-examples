@@ -32,6 +32,7 @@
 
 
 Explicación del Playbook:
+
 Dar permisos de sudo sin contraseña al grupo wheel:
 
 Usa lineinfile para modificar el archivo /etc/sudoers y permitir que todos los miembros del grupo wheel puedan ejecutar cualquier comando con sudo sin necesidad de ingresar su contraseña.
@@ -49,7 +50,7 @@ El parámetro validate: '/usr/sbin/visudo -cf %s' se utiliza para asegurarse de 
 
 Para windows:
 
-```console
+```
 
 ---
 - name: Administración de usuarios y permisos en Windows con Ansible
@@ -108,6 +109,7 @@ Para windows:
 ```
 
 Explicación del Playbook:
+
 Crear un usuario en Windows:
 
 Utiliza el módulo win_user para crear un usuario llamado usuario_test con la contraseña P@ssw0rd!. Este usuario se agrega al grupo Administrators y tiene una descripción.
