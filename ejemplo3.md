@@ -44,3 +44,8 @@ La tarea debug muestra el contenido de rhel_packages.stdout_lines para visualiza
 
  El módulo win_package_facts recupera las aplicaciones instaladas en el sistema Windows.
 La tarea debug muestra la variable ansible_facts.packages, que contiene los programas instalados.
+
+Resultado esperado:
+En RHEL: Verás una lista de los paquetes instalados que el comando yum list installed haya devuelto.
+En Windows: Verás una lista de las aplicaciones instaladas en el sistema.
+
