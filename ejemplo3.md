@@ -46,6 +46,7 @@ La tarea debug muestra el contenido de rhel_packages.stdout_lines para visualiza
 La tarea debug muestra la variable ansible_facts.packages, que contiene los programas instalados.
 
 Resultado esperado:
-En RHEL: Verás una lista de los paquetes instalados que el comando yum list installed haya devuelto.
-En Windows: Verás una lista de las aplicaciones instaladas en el sistema.
+
+1. En RHEL: Verás una lista de los paquetes instalados que el comando yum list installed haya devuelto.
+2. En Windows: Verás una lista de las aplicaciones instaladas en el sistema.
 
