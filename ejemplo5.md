@@ -37,7 +37,7 @@ Habilitar Microsoft Defender for Cloud en la suscripción:
 
 ### 2. Playbook para Habilitar Microsoft Defender en Máquinas Virtuales (Windows/Linux)
 Una vez que has habilitado Microsoft Defender en la suscripción de Azure, puedes habilitar el agente de Microsoft Defender en las máquinas virtuales. Microsoft Defender debería instalarse y habilitarse automáticamente cuando activas Defender en la suscripción, pero también puedes hacerlo manualmente.
-*** a) Para Máquinas Virtuales Windows
+**a) Para Máquinas Virtuales Windows**
 ```
 ---
 - name: Habilitar Microsoft Defender en una VM de Windows
@@ -66,7 +66,7 @@ Una vez que has habilitado Microsoft Defender en la suscripción de Azure, puede
         var: defender_status.stdout_lines
 ```
 
-*** b) Para Máquinas Virtuales RHEL (Linux)
+**b) Para Máquinas Virtuales RHEL (Linux)**
 En las distribuciones de Linux, se puede habilitar Microsoft Defender utilizando el paquete OMS Agent de Microsoft.
 ```
 ---
@@ -104,11 +104,11 @@ En las distribuciones de Linux, se puede habilitar Microsoft Defender utilizando
 ```
 
 Explicación del Playbook:
-*** a) Windows:
+**a) Windows:**
 1. Instalar Microsoft Defender: Usa el módulo win_feature para instalar la funcionalidad de Microsoft Defender en Windows.
 2. Iniciar y habilitar el servicio: Usa win_service para asegurarte de que el servicio WinDefend esté activo y configurado para iniciarse automáticamente.
 3. Verificar el estado: Ejecuta un comando sc query para verificar el estado del servicio de Microsoft Defender.
-*** b) RHEL (Linux):
+**b) RHEL (Linux):**
 1. Instalar OMS Agent: Descarga e instala el agente OMS (Operations Management Suite), que incluye la protección de Microsoft Defender para máquinas Linux.
 2. Habilitar el servicio: Usa systemd para iniciar y habilitar el servicio del agente en Linux.
 3. Verificar el estado: Se asegura de que el servicio omsagent esté corriendo y habilitado.
