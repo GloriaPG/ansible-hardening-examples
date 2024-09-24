@@ -1,3 +1,4 @@
+```console
 ---
 - name: Configurar sudoers para usuarios y grupos en RHEL
   hosts: servidores_rhel
@@ -27,6 +28,7 @@
         insertafter: '^%wheel ALL=(ALL) NOPASSWD:ALL'
         line: 'usuario_test ALL=(ALL) !ALL'
         validate: '/usr/sbin/visudo -cf %s'
+```
 
 
 Explicación del Playbook:
@@ -46,6 +48,8 @@ El parámetro validate: '/usr/sbin/visudo -cf %s' se utiliza para asegurarse de 
 
 
 Para windows:
+
+```console
 
 ---
 - name: Administración de usuarios y permisos en Windows con Ansible
@@ -101,6 +105,7 @@ Para windows:
         members: 
           - usuario_test
         state: absent
+```
 
 Explicación del Playbook:
 Crear un usuario en Windows:
